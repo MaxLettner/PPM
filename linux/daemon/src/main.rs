@@ -7,6 +7,7 @@ use peerpass_core::totp::Totp;
 use peerpass_core::identity::Identity;
 use peerpass_core::model::Entry;
 use peerpass_core::storage::Storage;
+use peerpass_core::sync::approval::PairingUi;
 use peerpass_core::sync::discovery::Discovery;
 use peerpass_core::sync::node::{log, Node};
 use peerpass_core::sync::DEFAULT_PORT;
@@ -18,42 +19,24 @@ use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{channel, RecvTimeoutError, Sender};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use uuid::Uuid;
 use zeroize::Zeroizing;
 
 const SYNC_INTERVAL: Duration = Duration::from_secs(300);
-const APPROVAL_TIMEOUT: Duration = Duration::from_secs(120);
 const DEFAULT_AUTO_LOCK: u64 = 300;
-
-#[derive(Default)]
-struct Approval {
-    name: String,
-    code: String,
-    decision: Option<bool>,
-}
-
-#[derive(Default, Clone)]
-struct JoinState {
-    code: Option<String>,
-    done: bool,
-    error: Option<String>,
-    peer: Option<String>,
-}
 
 #[derive(Default)]
 struct Shared {
     rev: AtomicU64,
-    approval: Mutex<Option<Approval>>,
-    cv: Condvar,
 }
 
 struct Daemon {
     node: Arc<Node>,
     shared: Arc<Shared>,
     last_activity: Mutex<Instant>,
-    join: Arc<Mutex<Option<JoinState>>>,
+    pairing: Arc<PairingUi>,
     sync_tx: Mutex<Sender<()>>,
 }
 
@@ -102,8 +85,12 @@ fn load_identity(dir: &Path) -> std::io::Result<Identity> {
 
 fn main() {
     let args = parse_args();
-    // Everything we create (DB, key, socket) is private to this user.
-    unsafe { libc::umask(0o077) };
+    // Everything we create (DB, key, socket) is private to this user. Not dumpable: no core
+    // dumps with K_v in them, and other same-user processes cannot ptrace us.
+    unsafe {
+        libc::umask(0o077);
+        libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0);
+    }
     std::fs::create_dir_all(&args.data_dir).expect("create data dir");
     let _ = std::fs::set_permissions(&args.data_dir, std::fs::Permissions::from_mode(0o700));
     let identity = load_identity(&args.data_dir).expect("identity key");
@@ -111,16 +98,10 @@ fn main() {
     let vault = Arc::new(Mutex::new(Vault::new(db, identity)));
 
     let shared = Arc::new(Shared::default());
+    let pairing = Arc::new(PairingUi::default());
     let sh = shared.clone();
-    let approver = Box::new(move |name: &str, code: &str| {
-        let mut g = sh.approval.lock().unwrap();
-        *g = Some(Approval { name: name.into(), code: code.into(), decision: None });
+    let approver = pairing.approver(move || {
         sh.rev.fetch_add(1, Ordering::SeqCst);
-        let (mut g, _) = sh
-            .cv
-            .wait_timeout_while(g, APPROVAL_TIMEOUT, |a| a.as_ref().is_some_and(|a| a.decision.is_none()))
-            .unwrap();
-        g.take().and_then(|a| a.decision).unwrap_or(false)
     });
     let sh = shared.clone();
     let on_change = Box::new(move || {
@@ -162,7 +143,7 @@ fn main() {
         node,
         shared,
         last_activity: Mutex::new(Instant::now()),
-        join: Arc::new(Mutex::new(None)),
+        pairing,
         sync_tx: Mutex::new(tx),
     });
 
@@ -458,42 +439,21 @@ impl Daemon {
                 Ok(Value::Null)
             }
             "pair_status" => {
-                let a = self.shared.approval.lock().unwrap();
-                let pending = a.as_ref().filter(|a| a.decision.is_none()).map(|a| json!({ "name": a.name, "code": a.code }));
-                let j = self.join.lock().unwrap().clone();
+                let pending = self.pairing.pending().map(|(name, code)| json!({ "name": name, "code": code }));
+                let j = self.pairing.join_state();
                 Ok(json!({
                     "pending": pending,
                     "join": j.map(|j| json!({ "code": j.code, "done": j.done, "error": j.error, "peer": j.peer })),
                 }))
             }
             "pair_respond" => {
-                let accept = p.get("accept").and_then(Value::as_bool).ok_or("missing accept")?;
-                if let Some(a) = self.shared.approval.lock().unwrap().as_mut() {
-                    a.decision = Some(accept);
-                }
-                self.shared.cv.notify_all();
+                self.pairing.respond(p.get("accept").and_then(Value::as_bool).ok_or("missing accept")?);
                 Ok(Value::Null)
             }
             "pair_join" => {
-                let text = s(p, "text")?.to_string();
-                let name = s(p, "device_name")?.to_string();
-                *self.join.lock().unwrap() = Some(JoinState::default());
-                let (node, join, shared) = (self.node.clone(), self.join.clone(), self.shared.clone());
-                std::thread::spawn(move || {
-                    let j2 = join.clone();
-                    let r = node.join(&text, &name, &move |c| {
-                        if let Some(j) = j2.lock().unwrap().as_mut() {
-                            j.code = Some(c.to_string());
-                        }
-                    });
-                    if let Some(j) = join.lock().unwrap().as_mut() {
-                        j.done = true;
-                        match r {
-                            Ok(n) => j.peer = Some(n),
-                            Err(e) => j.error = Some(e.to_string()),
-                        }
-                    }
-                    shared.rev.fetch_add(1, Ordering::SeqCst);
+                let sh = self.shared.clone();
+                self.pairing.start_join(self.node.clone(), s(p, "text")?.to_string(), s(p, "device_name")?.to_string(), move || {
+                    sh.rev.fetch_add(1, Ordering::SeqCst);
                 });
                 Ok(Value::Null)
             }

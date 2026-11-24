@@ -1,4 +1,5 @@
 //! LAN sync: Noise transport, state-based exchange, pairing and mDNS discovery.
+pub mod approval;
 pub mod discovery;
 pub mod exchange;
 pub mod node;
