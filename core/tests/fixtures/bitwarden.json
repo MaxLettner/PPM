@@ -1,0 +1,20 @@
+{
+  "encrypted": false,
+  "folders": [],
+  "items": [
+    {
+      "id": "1", "type": 1, "name": "Mail", "notes": "personal",
+      "fields": [{ "name": "Recovery code", "value": "abc-123", "type": 1 }],
+      "login": {
+        "username": "me@example.com", "password": "mail-pw",
+        "totp": "otpauth://totp/Mail:me?secret=JBSWY3DPEHPK3PXP&digits=8&period=60&algorithm=SHA256",
+        "uris": [{ "match": null, "uri": "https://mail.example.com" }, { "uri": "androidapp://com.example.mail" }]
+      }
+    },
+    { "id": "2", "type": 2, "name": "A secure note", "notes": "not a login", "secureNote": { "type": 0 } },
+    {
+      "id": "3", "type": 1, "name": "Mail", "notes": null,
+      "login": { "username": "me@example.com", "password": "other", "uris": [{ "uri": "https://mail.example.com" }] }
+    }
+  ]
+}

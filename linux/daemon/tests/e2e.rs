@@ -105,6 +105,16 @@ fn two_daemons_pair_and_sync() {
     call(&mut b, "sync_now", Value::Null);
     assert_eq!(call(&mut b, "list", Value::Null), json!([]));
 
+    // Import on B (fixture) reaches A; TOTP works on the imported entry.
+    let fx = concat!(env!("CARGO_MANIFEST_DIR"), "/../../core/tests/fixtures/bitwarden.json");
+    let r = call(&mut b, "import", json!({ "format": "bitwarden", "path": fx }));
+    assert_eq!((r["imported"].as_u64(), r["skipped"].as_u64()), (Some(1), Some(1)));
+    call(&mut b, "sync_now", Value::Null);
+    let list = call(&mut a, "list", Value::Null);
+    let mail = list.as_array().unwrap().iter().find(|x| x["title"] == "Mail" && x["urls"].as_array().unwrap().len() == 2).unwrap();
+    let t = call(&mut a, "totp", json!({ "id": mail["id"], "index": 0 }));
+    assert_eq!(t["code"].as_str().unwrap().len(), 8);
+
     // A sees B by name with a last sync time.
     let peers = call(&mut a, "peers", Value::Null);
     assert_eq!(peers[0]["name"], "desktop");

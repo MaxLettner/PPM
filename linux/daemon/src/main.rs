@@ -2,6 +2,8 @@
 use peerpass_core::crypto::KdfParams;
 use peerpass_core::domain;
 use peerpass_core::generator::{self, GenOptions};
+use peerpass_core::import;
+use peerpass_core::totp::Totp;
 use peerpass_core::identity::Identity;
 use peerpass_core::model::Entry;
 use peerpass_core::storage::Storage;
@@ -300,7 +302,8 @@ impl Daemon {
     }
 
     fn handle(&self, method: &str, p: &Value) -> Result<Value, String> {
-        if !matches!(method, "status" | "pair_status") {
+        // Passive polling (status, TOTP countdown) does not keep the vault unlocked.
+        if !matches!(method, "status" | "pair_status" | "totp") {
             *self.last_activity.lock().unwrap() = Instant::now();
         }
         let vault = &self.node.vault;
@@ -481,6 +484,28 @@ impl Daemon {
                     shared.rev.fetch_add(1, Ordering::SeqCst);
                 });
                 Ok(Value::Null)
+            }
+            "totp" => {
+                let v = vault.lock().unwrap();
+                let it = v.get(&uuid(p, "id")?).map_err(err)?;
+                let i = p.get("index").and_then(Value::as_u64).unwrap_or(0) as usize;
+                let e = it.siblings.get(i).and_then(|s| s.entry.as_ref()).ok_or("no such version")?;
+                let t = Totp::parse(e.totp.as_deref().ok_or("entry has no TOTP")?).map_err(err)?;
+                let (code, remaining) = t.now();
+                Ok(json!({ "code": code, "remaining": remaining, "period": t.period }))
+            }
+            "import" => {
+                let path = s(p, "path")?;
+                let data = Zeroizing::new(std::fs::read(path).map_err(|e| format!("cannot read {path}: {e}"))?);
+                let entries = match s(p, "format")? {
+                    "kdbx" => import::parse_kdbx(&data, p.get("password").and_then(Value::as_str).unwrap_or("")),
+                    "bitwarden" => import::parse_bitwarden(&data),
+                    f => return Err(format!("unknown format '{f}'")),
+                }
+                .map_err(err)?;
+                let sum = import::import_entries(&mut vault.lock().unwrap(), entries).map_err(err)?;
+                self.changed();
+                Ok(json!({ "imported": sum.imported, "skipped": sum.skipped }))
             }
             "set_auto_lock" => {
                 let secs = p.get("secs").and_then(Value::as_u64).filter(|s| *s >= 30).ok_or("secs >= 30 required")?;
