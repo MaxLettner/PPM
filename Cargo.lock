@@ -1123,6 +1123,7 @@ dependencies = [
  "getrandom 0.4.3",
  "hex",
  "hmac",
+ "if-addrs",
  "keepass",
  "mdns-sd",
  "postcard",

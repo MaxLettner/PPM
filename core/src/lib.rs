@@ -6,6 +6,7 @@ pub mod generator;
 pub mod identity;
 pub mod model;
 pub mod storage;
+pub mod sync;
 pub mod vault;
 
 pub use error::{Error, Result};
