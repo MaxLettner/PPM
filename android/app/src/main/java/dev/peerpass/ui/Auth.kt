@@ -104,6 +104,7 @@ fun SetupScreen(pair: PairStatus) {
             }
             return@Column
         }
+        Text("peerpass", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary, fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold)
         pair.joinError?.let { ErrorText("Joining failed: $it") }
         Text("Create a new vault", style = MaterialTheme.typography.headlineSmall)
         Text("Use this on your first device.")
@@ -176,7 +177,8 @@ fun UnlockScreen(act: FragmentActivity, onUnlocked: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = gap) {
-        Text("Unlock peerpass", style = MaterialTheme.typography.headlineSmall)
+        Text("peerpass", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.primary, fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold)
+        Text("Unlock your vault", style = MaterialTheme.typography.headlineSmall)
         core.deviceName()?.let { Text("This device: $it", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         PasswordField(pw, "Master password", onDone = { unlock() }) { pw = it }
         ErrorText(err)

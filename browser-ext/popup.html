@@ -3,20 +3,35 @@
 <head>
 <meta charset="utf-8">
 <style>
-  :root { color-scheme: light dark; --muted: #777; --hover: rgba(127,127,127,.15); }
-  body { font: 13px system-ui, sans-serif; margin: 0; min-width: 300px; max-width: 380px; }
-  header { padding: 8px 10px; font-weight: 600; border-bottom: 1px solid var(--hover); }
-  #msg { padding: 12px 10px; color: var(--muted); }
-  .item { display: flex; align-items: center; gap: 6px; padding: 6px 10px; }
-  .item:hover { background: var(--hover); }
+  /* Catppuccin Macchiato, accent mauve */
+  :root {
+    --base: #24273a; --mantle: #1e2030; --crust: #181926; --surface0: #363a4f; --surface1: #494d64;
+    --overlay0: #6e738d; --subtext0: #a5adcb; --text: #cad3f5; --mauve: #c6a0f6; --lavender: #b7bdf8;
+    --red: #ed8796; --green: #a6da95;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { font: 13px/1.35 system-ui, sans-serif; margin: 0; min-width: 320px; max-width: 380px; background: var(--base); color: var(--text); }
+  header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--mantle); border-bottom: 1px solid var(--crust); }
+  header .logo { font-weight: 800; color: var(--mauve); }
+  header #site { margin-left: auto; color: var(--subtext0); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+  #msg { padding: 14px 12px; color: var(--subtext0); }
+  #msg:empty { display: none; }
+  #list { padding: 6px; }
+  .item { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px; }
+  .item:hover { background: var(--surface0); }
+  .avatar { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: var(--crust); }
   .who { flex: 1; min-width: 0; cursor: pointer; }
   .who div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sub { color: var(--muted); font-size: 12px; }
-  button { font: inherit; }
+  .title { font-weight: 600; }
+  .sub { color: var(--subtext0); font-size: 12px; }
+  button { font: inherit; font-size: 12px; background: var(--surface0); color: var(--text); border: 0; border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+  button:hover { background: var(--surface1); }
+  button.copied { background: var(--green); color: var(--crust); }
 </style>
 </head>
 <body>
-<header id="site">peerpass</header>
+<header><span class="logo">peerpass</span><span id="site"></span></header>
 <div id="msg">Loading…</div>
 <div id="list"></div>
 <script src="popup.js"></script>

@@ -23,6 +23,7 @@ impl Live {
 pub fn banner(l: &gtk::Label, text: &str, is_err: bool) {
     l.set_text(text);
     l.set_visible(true);
+    l.add_css_class("banner");
     if is_err {
         l.add_css_class("error");
     } else {
@@ -45,6 +46,40 @@ fn vbox(spacing: i32) -> gtk::Box {
     gtk::Box::new(gtk::Orientation::Vertical, spacing)
 }
 
+/// Letter avatar with a stable accent color per title.
+fn avatar(title: &str, big: bool) -> gtk::Label {
+    let ch = title.chars().find(|c| c.is_alphanumeric()).map(|c| c.to_uppercase().to_string()).unwrap_or_else(|| "?".into());
+    let l = gtk::Label::new(Some(&ch));
+    let n = title.bytes().fold(0u32, |a, b| a.wrapping_mul(31).wrapping_add(b as u32)) % 7;
+    l.add_css_class("avatar");
+    l.add_css_class(&format!("accent-{n}"));
+    if big {
+        l.add_css_class("big");
+    }
+    l.set_valign(gtk::Align::Center);
+    l
+}
+
+fn form_card() -> gtk::Box {
+    let b = vbox(10);
+    b.add_css_class("card");
+    b.add_css_class("form");
+    b
+}
+
+fn primary(label: &str, s: &S, f: impl Fn() -> Msg + 'static) -> gtk::Button {
+    let b = btn(label, s, f);
+    b.add_css_class("suggested-action");
+    b.set_halign(gtk::Align::Fill);
+    b
+}
+
+fn card() -> gtk::Box {
+    let b = vbox(0);
+    b.add_css_class("card");
+    b
+}
+
 fn heading(t: &str) -> gtk::Label {
     let l = gtk::Label::builder().label(t).xalign(0.0).build();
     l.add_css_class("title-2");
@@ -52,7 +87,7 @@ fn heading(t: &str) -> gtk::Label {
 }
 
 fn text(t: &str) -> gtk::Label {
-    gtk::Label::builder().label(t).xalign(0.0).wrap(true).wrap_mode(gtk::pango::WrapMode::WordChar).selectable(true).build()
+    gtk::Label::builder().label(t).xalign(0.0).wrap(true).wrap_mode(gtk::pango::WrapMode::WordChar).build()
 }
 
 fn dim(t: &str) -> gtk::Label {
@@ -72,7 +107,7 @@ fn password(placeholder: &str) -> gtk::PasswordEntry {
 fn textview(value: &str) -> gtk::TextView {
     let tv = gtk::TextView::builder().wrap_mode(gtk::WrapMode::WordChar).height_request(70).build();
     tv.buffer().set_text(value);
-    tv.add_css_class("card");
+    tv.add_css_class("input");
     tv
 }
 
@@ -109,14 +144,25 @@ pub fn header_buttons(b: &gtk::Box, app: &App, s: &S) {
     if app.page != Page::List {
         b.append(&btn("← Back", s, || Msg::Nav(Page::List)));
     }
-    b.append(&btn("+ New", s, || Msg::Nav(Page::Edit(None))));
-    let menu = gtk::Box::new(gtk::Orientation::Horizontal, 2);
-    menu.append(&btn("Generator", s, || Msg::Nav(Page::Generator)));
-    menu.append(&btn("Devices", s, || Msg::Nav(Page::Devices)));
-    menu.append(&btn("Import", s, || Msg::Nav(Page::Import)));
-    menu.append(&btn("Settings", s, || Msg::Nav(Page::Settings)));
-    menu.append(&btn("Lock", s, || Msg::Lock));
+    let new = btn("+ New", s, || Msg::Nav(Page::Edit(None)));
+    new.add_css_class("suggested-action");
+    b.append(&new);
+    let pop = gtk::Popover::new();
+    let items = vbox(2);
+    for (label, page) in [("Password generator", Page::Generator), ("Devices", Page::Devices), ("Import", Page::Import), ("Settings", Page::Settings)] {
+        let it = btn(label, s, move || Msg::Nav(page.clone()));
+        it.add_css_class("flat");
+        it.set_halign(gtk::Align::Fill);
+        let p2 = pop.clone();
+        it.connect_clicked(move |_| p2.popdown());
+        items.append(&it);
+    }
+    pop.set_child(Some(&items));
+    let menu = gtk::MenuButton::builder().label("Menu").popover(&pop).build();
     b.append(&menu);
+    let lock = btn("Lock", s, || Msg::Lock);
+    lock.add_css_class("flat");
+    b.append(&lock);
 }
 
 pub fn render(app: &App, c: &gtk::Box, live: &mut Live, s: &S) {
@@ -125,8 +171,21 @@ pub fn render(app: &App, c: &gtk::Box, live: &mut Live, s: &S) {
             c.append(&heading("peerpassd is not running"));
             c.append(&text("Start it with:  systemctl --user enable --now peerpassd"));
         }
-        Page::Setup => setup(app, c, s),
-        Page::Unlock => unlock(app, c, s),
+        Page::Setup | Page::Unlock => {
+            let col = vbox(14);
+            col.set_halign(gtk::Align::Center);
+            col.set_size_request(460, -1);
+            col.set_margin_top(28);
+            let brand = gtk::Label::new(Some("peerpass"));
+            brand.add_css_class("brand");
+            col.append(&brand);
+            if app.page == Page::Setup {
+                setup(app, &col, s)
+            } else {
+                unlock(app, &col, s)
+            }
+            c.append(&col);
+        }
         Page::List => list(app, c, s),
         Page::Entry(_) => entry_view(app, c, live, s),
         Page::Edit(id) => edit(app, id, c, s),
@@ -160,8 +219,11 @@ fn setup(app: &App, c: &gtk::Box, s: &S) {
     if let Some(e) = join["error"].as_str() {
         c.append(&dim(&format!("Joining failed: {e}")));
     }
+    let outer = c;
+    let c = &form_card();
+    outer.append(c);
     c.append(&heading("Create a new vault"));
-    c.append(&text("Use this on your first device."));
+    c.append(&dim("Use this on your first device."));
     let name = entry("Device name, e.g. Laptop", "");
     let pw = password("Master password");
     let pw2 = password("Repeat master password");
@@ -170,24 +232,27 @@ fn setup(app: &App, c: &gtk::Box, s: &S) {
     }
     {
         let (name, pw, pw2) = (name.clone(), pw.clone(), pw2.clone());
-        c.append(&btn("Create vault", s, move || Msg::Create {
+        c.append(&primary("Create vault", s, move || Msg::Create {
             name: name.text().to_string(),
             pw: pw.text().to_string(),
             pw2: pw2.text().to_string(),
         }));
     }
-    c.append(&gtk::Separator::new(gtk::Orientation::Horizontal));
+    let c = &form_card();
+    outer.append(c);
     c.append(&heading("Join an existing vault"));
-    c.append(&text("On a paired device open Devices → Pair new device, then paste the pairing text here."));
+    c.append(&dim("On a paired device open Devices → Pair new device, then paste the pairing text here."));
     let jname = entry("Device name, e.g. Desktop", "");
     let code = textview("");
     c.append(&jname);
     c.append(&labeled("Pairing text", &code));
-    c.append(&btn("Join", s, move || Msg::Join { name: jname.text().to_string(), text: tv_text(&code) }));
+    c.append(&primary("Join", s, move || Msg::Join { name: jname.text().to_string(), text: tv_text(&code) }));
 }
 
-fn unlock(app: &App, c: &gtk::Box, s: &S) {
-    c.append(&heading("Unlock"));
+fn unlock(app: &App, outer: &gtk::Box, s: &S) {
+    let c = &form_card();
+    outer.append(c);
+    c.append(&heading("Unlock your vault"));
     if let Some(n) = app.status["device_name"].as_str() {
         c.append(&dim(&format!("This device: {n}")));
     }
@@ -198,7 +263,7 @@ fn unlock(app: &App, c: &gtk::Box, s: &S) {
     }
     c.append(&pw);
     let p2 = pw.clone();
-    c.append(&btn("Unlock", s, move || Msg::Unlock(p2.text().to_string())));
+    c.append(&primary("Unlock", s, move || Msg::Unlock(p2.text().to_string())));
     pw.grab_focus();
 }
 
@@ -218,20 +283,27 @@ fn list(app: &App, c: &gtk::Box, s: &S) {
         c.append(&dim(if app.items.is_empty() { "No entries yet. Use “+ New” or Import." } else { "Nothing matches." }));
         return;
     }
-    let lb = gtk::ListBox::new();
+    let lb = gtk::ListBox::builder().selection_mode(gtk::SelectionMode::None).build();
     lb.add_css_class("boxed-list");
     let ids: Vec<String> = items.iter().map(|i| i["id"].as_str().unwrap_or("").to_string()).collect();
     for i in &items {
-        let row = vbox(2);
-        row.set_margin_top(6);
-        row.set_margin_bottom(6);
-        row.set_margin_start(8);
-        let mut title = i["title"].as_str().unwrap_or("").to_string();
+        let title = i["title"].as_str().unwrap_or("");
+        let row = hbox(12);
+        row.append(&avatar(title, false));
+        let col = vbox(2);
+        col.set_hexpand(true);
+        col.set_valign(gtk::Align::Center);
+        let t = gtk::Label::builder().label(title).xalign(0.0).build();
+        t.add_css_class("heading");
+        col.append(&t);
+        col.append(&dim(i["username"].as_str().unwrap_or("")));
+        row.append(&col);
         if i["conflict"] == true {
-            title = format!("⚠ {title}");
+            let chip = gtk::Label::new(Some("conflict"));
+            chip.add_css_class("conflict-chip");
+            chip.set_valign(gtk::Align::Center);
+            row.append(&chip);
         }
-        row.append(&gtk::Label::builder().label(&title).xalign(0.0).build());
-        row.append(&dim(i["username"].as_str().unwrap_or("")));
         lb.append(&row);
     }
     let s = s.clone();
@@ -244,16 +316,24 @@ fn field_row(c: &gtk::Box, label: &str, value: &str, secret: bool, s: &S) {
         return;
     }
     let row = hbox(6);
+    row.add_css_class("field-row");
     let col = vbox(2);
     col.set_hexpand(true);
-    col.append(&dim(label));
+    let cap = dim(label);
+    cap.add_css_class("caption");
+    col.append(&cap);
     let shown = Rc::new(Cell::new(!secret));
     let mask = "•".repeat(value.chars().count().min(16));
     let l = text(if secret { &mask } else { value });
+    if secret {
+        l.add_css_class("monospace");
+    }
     col.append(&l);
     row.append(&col);
     if secret {
         let b = gtk::Button::with_label("Show");
+        b.add_css_class("flat");
+        b.set_valign(gtk::Align::Center);
         let (v, l2, shown2) = (value.to_string(), l.clone(), shown.clone());
         b.connect_clicked(move |b| {
             shown2.set(!shown2.get());
@@ -263,7 +343,9 @@ fn field_row(c: &gtk::Box, label: &str, value: &str, secret: bool, s: &S) {
         row.append(&b);
     }
     let v = value.to_string();
-    row.append(&btn("Copy", s, move || Msg::Copy(v.clone())));
+    let cp = btn("Copy", s, move || Msg::Copy(v.clone()));
+    cp.set_valign(gtk::Align::Center);
+    row.append(&cp);
     c.append(&row);
 }
 
@@ -273,7 +355,11 @@ fn entry_view(app: &App, c: &gtk::Box, live: &mut Live, s: &S) {
     let sibs = cur["siblings"].as_array().cloned().unwrap_or_default();
     if sibs.len() > 1 {
         let warn = hbox(8);
-        warn.append(&text(&format!("⚠ This entry has {} conflicting versions from different devices.", sibs.len())));
+        warn.add_css_class("banner");
+        warn.add_css_class("error");
+        let t = text(&format!("⚠ {} conflicting versions from different devices.", sibs.len()));
+        t.set_hexpand(true);
+        warn.append(&t);
         let id2 = id.clone();
         warn.append(&btn("Resolve…", s, move || Msg::Nav(Page::Resolve(id2.clone()))));
         c.append(&warn);
@@ -283,20 +369,33 @@ fn entry_view(app: &App, c: &gtk::Box, live: &mut Live, s: &S) {
         return;
     };
     let g = |k: &str| e[k].as_str().unwrap_or("").to_string();
-    c.append(&heading(&g("title")));
-    field_row(c, "Username", &g("username"), false, s);
-    field_row(c, "Password", &g("password"), true, s);
+    let head = hbox(14);
+    head.append(&avatar(&g("title"), true));
+    let hcol = vbox(2);
+    hcol.set_valign(gtk::Align::Center);
+    hcol.append(&heading(&g("title")));
+    if let Some(u) = e["urls"].as_array().and_then(|u| u.first()).and_then(Value::as_str) {
+        hcol.append(&dim(u));
+    }
+    head.append(&hcol);
+    c.append(&head);
+    let fields = card();
+    field_row(&fields, "Username", &g("username"), false, s);
+    field_row(&fields, "Password", &g("password"), true, s);
     for u in e["urls"].as_array().into_iter().flatten() {
-        field_row(c, "URL", u.as_str().unwrap_or(""), false, s);
+        field_row(&fields, "Website", u.as_str().unwrap_or(""), false, s);
     }
     if !e["totp"].is_null() {
-        totp_row(c, &id, idx, live, s);
+        totp_row(&fields, &id, idx, live, s);
     }
+    c.append(&fields);
+    let extra = card();
     for f in e["custom_fields"].as_array().into_iter().flatten() {
-        field_row(c, f["name"].as_str().unwrap_or(""), f["value"].as_str().unwrap_or(""), true, s);
+        field_row(&extra, f["name"].as_str().unwrap_or(""), f["value"].as_str().unwrap_or(""), true, s);
     }
-    if !g("notes").is_empty() {
-        c.append(&labeled("Notes", &text(&g("notes"))));
+    field_row(&extra, "Notes", &g("notes"), false, s);
+    if extra.first_child().is_some() {
+        c.append(&extra);
     }
     let actions = hbox(6);
     let id2 = id.clone();
@@ -318,9 +417,12 @@ fn entry_view(app: &App, c: &gtk::Box, live: &mut Live, s: &S) {
 
 fn totp_row(c: &gtk::Box, id: &str, idx: usize, live: &mut Live, s: &S) {
     let row = hbox(6);
+    row.add_css_class("field-row");
     let col = vbox(2);
     col.set_hexpand(true);
-    col.append(&dim("One-time code (TOTP)"));
+    let cap = dim("One-time code");
+    cap.add_css_class("caption");
+    col.append(&cap);
     let l = gtk::Label::builder().xalign(0.0).build();
     l.add_css_class("title-3");
     col.append(&l);
@@ -338,6 +440,7 @@ fn totp_row(c: &gtk::Box, id: &str, idx: usize, live: &mut Live, s: &S) {
     update();
     live.0.push(Box::new(update));
     let b = gtk::Button::with_label("Copy");
+    b.set_valign(gtk::Align::Center);
     let s2 = s.clone();
     b.connect_clicked(move |_| s2.input(Msg::Copy(code.borrow().clone())));
     row.append(&b);
@@ -602,6 +705,8 @@ fn devices(app: &App, c: &gtk::Box, s: &S) {
             let t = o["text"].as_str().unwrap_or("").to_string();
             c.append(&text("Scan this code with the new device, or paste the text below into it. Valid for 5 minutes, once."));
             if let Some(p) = qr_picture(&t) {
+                p.add_css_class("qr");
+                p.set_halign(gtk::Align::Start);
                 c.append(&p);
             }
             let l = text(&t);
@@ -613,13 +718,20 @@ fn devices(app: &App, c: &gtk::Box, s: &S) {
             r.append(&btn("Cancel", s, || Msg::PairCancel));
             c.append(&r);
         }
-        None => c.append(&btn("Pair new device", s, || Msg::PairBegin)),
+        None => {
+            let b = btn("Pair new device", s, || Msg::PairBegin);
+            b.add_css_class("suggested-action");
+            c.append(&b);
+        }
     }
     if app.peers.is_empty() {
         c.append(&dim("No other devices yet."));
     }
+    let peers = card();
     for p in &app.peers {
-        let row = hbox(8);
+        let row = hbox(12);
+        row.add_css_class("field-row");
+        row.append(&avatar(p["name"].as_str().unwrap_or(""), false));
         let col = vbox(2);
         col.set_hexpand(true);
         col.append(&text(p["name"].as_str().unwrap_or("")));
@@ -641,8 +753,12 @@ fn devices(app: &App, c: &gtk::Box, s: &S) {
                 b.set_label("Click again to remove");
             }
         });
+        rm.set_valign(gtk::Align::Center);
         row.append(&rm);
-        c.append(&row);
+        peers.append(&row);
+    }
+    if !app.peers.is_empty() {
+        c.append(&peers);
     }
     c.append(&btn("Sync now", s, || Msg::SyncNow));
     c.append(&dim("Removing a device stops syncing with it. It keeps any data it already has, and the vault key is not rotated."));

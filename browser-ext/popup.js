@@ -1,6 +1,8 @@
 // Lists vault entries for the active tab's site. Fills only on click, never on load.
 const HOST = "dev.peerpass.nmhost";
 const $ = (id) => document.getElementById(id);
+// Catppuccin Macchiato accents for letter avatars.
+const ACCENTS = ["#c6a0f6", "#8aadf4", "#a6da95", "#f5a97f", "#f5bde6", "#8bd5ca", "#eed49f"];
 
 async function call(msg) {
   const r = await browser.runtime.sendNativeMessage(HOST, msg);
@@ -54,6 +56,7 @@ async function copyTotp(entry, btn) {
   const t = await call({ method: "totp", id: entry.id, index: entry.index, url: tab.url });
   await navigator.clipboard.writeText(t.code);
   btn.textContent = `Copied (${t.remaining}s)`;
+  btn.classList.add("copied");
 }
 
 function render(entries) {
@@ -62,10 +65,16 @@ function render(entries) {
   for (const e of entries) {
     const row = document.createElement("div");
     row.className = "item";
+    const av = document.createElement("div");
+    av.className = "avatar";
+    av.textContent = (e.title.match(/[\p{L}\p{N}]/u) || ["?"])[0].toUpperCase();
+    av.style.background = ACCENTS[[...e.title].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 0) % ACCENTS.length];
+    row.append(av);
     const who = document.createElement("div");
     who.className = "who";
     who.title = "Fill username and password";
     const a = document.createElement("div");
+    a.className = "title";
     a.textContent = e.title + (e.label ? ` — ${e.label}` : "");
     const b = document.createElement("div");
     b.className = "sub";

@@ -1,0 +1,116 @@
+/* Catppuccin Macchiato — https://catppuccin.com/palette (accent: mauve) */
+@define-color base #24273a;
+@define-color mantle #1e2030;
+@define-color crust #181926;
+@define-color surface0 #363a4f;
+@define-color surface1 #494d64;
+@define-color surface2 #5b6078;
+@define-color overlay0 #6e738d;
+@define-color subtext0 #a5adcb;
+@define-color subtext1 #b8c0e0;
+@define-color text #cad3f5;
+@define-color mauve #c6a0f6;
+@define-color lavender #b7bdf8;
+@define-color red #ed8796;
+@define-color green #a6da95;
+
+window, window.background { background-color: @base; color: @text; }
+selection { background-color: @surface2; color: @text; }
+
+headerbar {
+  background: @mantle; color: @text; box-shadow: none;
+  border-bottom: 1px solid @crust; min-height: 48px; padding: 0 6px;
+}
+headerbar windowcontrols button { background: transparent; color: @subtext0; }
+headerbar windowcontrols button:hover { background: @surface0; color: @text; }
+
+button {
+  background: @surface0; background-image: none; color: @text; border: none;
+  border-radius: 10px; padding: 6px 14px; box-shadow: none; text-shadow: none;
+}
+button:hover { background: @surface1; }
+button:active { background: @surface2; }
+button.flat { background: transparent; }
+button.flat:hover { background: @surface0; }
+button.suggested-action { background: @mauve; color: @crust; font-weight: bold; }
+button.suggested-action:hover { background: @lavender; }
+button.destructive-action { background: alpha(@red, 0.18); color: @red; }
+button.destructive-action:hover { background: @red; color: @crust; }
+button.warning { background: alpha(@red, 0.18); color: @red; font-weight: bold; }
+headerbar button { padding: 4px 12px; }
+
+entry, spinbutton, searchentry, passwordentry, dropdown > button {
+  background: @mantle; color: @text; border: 1px solid @surface0;
+  border-radius: 10px; box-shadow: none; caret-color: @mauve; min-height: 34px;
+}
+entry:focus-within, searchentry:focus-within, passwordentry:focus-within, spinbutton:focus-within {
+  border-color: @mauve; outline: none;
+}
+entry > text > placeholder, searchentry > text > placeholder { color: @overlay0; }
+spinbutton button { background: transparent; border-radius: 8px; }
+
+textview, textview > text {
+  background: @mantle; color: @text; caret-color: @mauve;
+}
+textview.input { border: 1px solid @surface0; border-radius: 10px; padding: 8px; }
+
+checkbutton check, checkbutton radio { background: @surface0; border: 1px solid @surface2; color: @crust; }
+checkbutton check:checked, checkbutton radio:checked { background: @mauve; border-color: @mauve; }
+
+expander title { color: @mauve; }
+separator { background: @surface0; min-height: 1px; }
+scrollbar slider { background: @surface2; border-radius: 999px; min-width: 6px; }
+scrollbar { background: transparent; }
+popover > contents { background: @mantle; color: @text; border-radius: 12px; }
+
+.title-1 { font-size: 26pt; font-weight: 800; color: @mauve; letter-spacing: 4px; }
+.title-2 { font-size: 17pt; font-weight: 700; color: @text; }
+.title-3 { font-size: 15pt; font-weight: 700; color: @green; }
+.dim-label { color: @subtext0; opacity: 1; }
+.caption { font-size: 9pt; color: @subtext0; }
+.monospace { font-family: monospace; color: @green; }
+
+/* Cards and lists */
+.card {
+  background: @mantle; border: 1px solid @surface0; border-radius: 14px; padding: 4px 14px;
+}
+.card > .field-row:not(:last-child) { border-bottom: 1px solid @surface0; }
+.field-row { padding: 10px 0; }
+list, listview { background: transparent; color: @text; }
+list.boxed-list {
+  background: @mantle; border: 1px solid @surface0; border-radius: 14px;
+}
+list.boxed-list > row { padding: 8px 12px; border-radius: 0; }
+list.boxed-list > row:not(:last-child) { border-bottom: 1px solid @surface0; }
+list.boxed-list > row:first-child { border-top-left-radius: 14px; border-top-right-radius: 14px; }
+list.boxed-list > row:last-child { border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }
+list > row:hover { background: @surface0; }
+list > row:selected { background: alpha(@mauve, 0.16); }
+
+/* Letter avatars in the accent colors */
+.avatar {
+  min-width: 38px; min-height: 38px; border-radius: 999px;
+  font-weight: 800; font-size: 13pt; color: @crust;
+}
+.avatar.big { min-width: 52px; min-height: 52px; font-size: 19pt; }
+.accent-0 { background: #c6a0f6; }
+.accent-1 { background: #8aadf4; }
+.accent-2 { background: #a6da95; }
+.accent-3 { background: #f5a97f; }
+.accent-4 { background: #f5bde6; }
+.accent-5 { background: #8bd5ca; }
+.accent-6 { background: #eed49f; }
+
+/* Status banner under the header bar */
+.banner { padding: 8px 16px; background: alpha(@mauve, 0.14); color: @lavender; }
+.banner.error { background: alpha(@red, 0.16); color: @red; }
+
+.conflict-chip { background: alpha(@red, 0.18); color: @red; border-radius: 999px; padding: 1px 8px; font-size: 9pt; font-weight: bold; }
+.qr { background: white; border-radius: 14px; padding: 10px; }
+
+headerbar button.flat, headerbar menubutton > button { background: transparent; }
+headerbar button.flat:hover, headerbar menubutton > button:hover { background: @surface0; }
+headerbar button.suggested-action { background: @mauve; color: @crust; }
+popover button.flat { padding: 8px 14px; }
+popover button.flat .card.form { padding: 20px; }
+.brand { font-size: 28pt; font-weight: 800; color: @mauve; letter-spacing: 1px; margin-bottom: 6px; }

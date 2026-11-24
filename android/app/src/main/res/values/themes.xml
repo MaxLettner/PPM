@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Catppuccin Macchiato window colors (no white flash before Compose draws). -->
+    <style name="Theme.Peerpass" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#FF24273A</item>
+        <item name="android:colorBackground">#FF24273A</item>
+        <item name="android:colorAccent">#FFC6A0F6</item>
+        <item name="android:statusBarColor">#FF1E2030</item>
+        <item name="android:navigationBarColor">#FF24273A</item>
+    </style>
+</resources>

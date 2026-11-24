@@ -20,7 +20,7 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@android:drawable/ic_lock_lock"
         android:label="peerpass"
-        android:theme="@android:style/Theme.Material.NoActionBar">
+        android:theme="@style/Theme.Peerpass">
 
         <activity
             android:name=".MainActivity"

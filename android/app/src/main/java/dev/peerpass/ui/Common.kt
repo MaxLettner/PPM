@@ -3,7 +3,19 @@ package dev.peerpass.ui
 import android.os.Build
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,8 +24,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,10 +39,67 @@ import androidx.fragment.app.FragmentActivity
 import dev.peerpass.Clipboard
 import javax.crypto.Cipher
 
+/** Catppuccin Macchiato (accent: mauve). */
+object Mocha {
+    val base = Color(0xFF24273A)
+    val mantle = Color(0xFF1E2030)
+    val crust = Color(0xFF181926)
+    val surface0 = Color(0xFF363A4F)
+    val surface1 = Color(0xFF494D64)
+    val surface2 = Color(0xFF5B6078)
+    val overlay0 = Color(0xFF6E738D)
+    val subtext0 = Color(0xFFA5ADCB)
+    val text = Color(0xFFCAD3F5)
+    val mauve = Color(0xFFC6A0F6)
+    val lavender = Color(0xFFB7BDF8)
+    val pink = Color(0xFFF5BDE6)
+    val red = Color(0xFFED8796)
+    val green = Color(0xFFA6DA95)
+    val accents = listOf(
+        mauve, Color(0xFF8AADF4), green, Color(0xFFF5A97F), pink, Color(0xFF8BD5CA), Color(0xFFEED49F),
+    )
+}
+
+private val macchiato = darkColorScheme(
+    primary = Mocha.mauve, onPrimary = Mocha.crust,
+    primaryContainer = Mocha.surface1, onPrimaryContainer = Mocha.lavender,
+    secondary = Mocha.lavender, onSecondary = Mocha.crust,
+    secondaryContainer = Mocha.surface0, onSecondaryContainer = Mocha.text,
+    tertiary = Mocha.pink, onTertiary = Mocha.crust,
+    background = Mocha.base, onBackground = Mocha.text,
+    surface = Mocha.base, onSurface = Mocha.text,
+    surfaceVariant = Mocha.surface0, onSurfaceVariant = Mocha.subtext0,
+    surfaceContainerLowest = Mocha.crust, surfaceContainerLow = Mocha.mantle,
+    surfaceContainer = Mocha.mantle, surfaceContainerHigh = Mocha.surface0, surfaceContainerHighest = Mocha.surface1,
+    inverseSurface = Mocha.text, inverseOnSurface = Mocha.base,
+    outline = Mocha.overlay0, outlineVariant = Mocha.surface0,
+    error = Mocha.red, onError = Mocha.crust, errorContainer = Mocha.red.copy(alpha = 0.2f), onErrorContainer = Mocha.red,
+)
+
 @Composable
 fun PeerPassTheme(content: @Composable () -> Unit) {
-    val c = LocalContext.current
-    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) dynamicDarkColorScheme(c) else dynamicLightColorScheme(c), content = content)
+    MaterialTheme(colorScheme = macchiato) {
+        Surface(color = Mocha.base, contentColor = Mocha.text, modifier = Modifier.fillMaxSize(), content = content)
+    }
+}
+
+/** Letter avatar with a stable accent color per title. */
+@Composable
+fun Avatar(title: String, size: Int = 40) {
+    val ch = title.firstOrNull { it.isLetterOrDigit() }?.uppercaseChar() ?: '?'
+    val color = Mocha.accents[(title.fold(0) { a, c -> a * 31 + c.code } and 0x7fffffff) % Mocha.accents.size]
+    Box(Modifier.size(size.dp).clip(CircleShape).background(color), contentAlignment = Alignment.Center) {
+        Text(ch.toString(), color = Mocha.crust, fontWeight = FontWeight.ExtraBold, fontSize = (size * 0.42f).sp)
+    }
+}
+
+/** Grouped fields on a raised surface. */
+@Composable
+fun FieldCard(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Mocha.mantle).padding(horizontal = 14.dp, vertical = 4.dp),
+        content = content,
+    )
 }
 
 /** Label + value with optional reveal and a copy button (copies as sensitive, auto-clears). */
@@ -44,7 +111,11 @@ fun FieldRow(label: String, value: String, secret: Boolean = false) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(if (shown) value else "•".repeat(minOf(value.length, 16)), fontFamily = if (secret) FontFamily.Monospace else null)
+            Text(
+                if (shown) value else "•".repeat(minOf(value.length, 16)),
+                fontFamily = if (secret) FontFamily.Monospace else null,
+                color = if (secret) Mocha.green else Mocha.text,
+            )
         }
         if (secret) TextButton(onClick = { shown = !shown }) { Text(if (shown) "Hide" else "Show") }
         TextButton(onClick = { Clipboard.copy(c, label, value) }) { Text("Copy") }

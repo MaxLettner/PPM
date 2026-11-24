@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.journeyapps.barcodescanner.ScanContract
@@ -135,8 +136,10 @@ fun ListScreen(go: (Route) -> Unit) {
             LazyColumn {
                 items(shown, key = { it.id }) { s ->
                     ListItem(
-                        headlineContent = { Text((if (s.conflict) "⚠ " else "") + s.title) },
+                        leadingContent = { Avatar(s.title) },
+                        headlineContent = { Text(s.title, fontWeight = FontWeight.SemiBold) },
                         supportingContent = { Text(s.username) },
+                        trailingContent = if (s.conflict) { { Text("conflict", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium) } } else null,
                         modifier = Modifier.clickable { go(Route.Entry(s.id)) },
                     )
                 }
@@ -158,13 +161,23 @@ fun EntryScreen(id: String, go: (Route) -> Unit, home: () -> Unit) {
     }
     val v = item.versions.firstOrNull { it.entry != null } ?: return Text("All versions are deleted.")
     val e = v.entry!!
-    Text(e.title, style = MaterialTheme.typography.headlineSmall)
-    FieldRow("Username", e.username)
-    FieldRow("Password", e.password, secret = true)
-    e.urls.forEach { FieldRow("Website", it) }
-    if (e.totp != null) TotpRow(id, v.index)
-    e.customFields.forEach { FieldRow(it.name, it.value, secret = true) }
-    if (e.notes.isNotEmpty()) FieldRow("Notes", e.notes)
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = gap) {
+        Avatar(e.title, 52)
+        Column {
+            Text(e.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            e.urls.firstOrNull()?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
+    }
+    FieldCard {
+        FieldRow("Username", e.username)
+        FieldRow("Password", e.password, secret = true)
+        e.urls.forEach { FieldRow("Website", it) }
+        if (e.totp != null) TotpRow(id, v.index)
+    }
+    if (e.customFields.isNotEmpty() || e.notes.isNotEmpty()) FieldCard {
+        e.customFields.forEach { FieldRow(it.name, it.value, secret = true) }
+        FieldRow("Notes", e.notes)
+    }
     Row(horizontalArrangement = gap) {
         Button(onClick = { go(Route.Edit(id)) }) { Text("Edit") }
         OutlinedButton(onClick = { confirm = true }) { Text("Delete") }
@@ -192,7 +205,7 @@ fun TotpRow(id: String, index: UInt) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text("One-time code", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("$code  (${left}s)", style = MaterialTheme.typography.titleLarge, fontFamily = FontFamily.Monospace)
+            Text("$code  (${left}s)", style = MaterialTheme.typography.titleLarge, fontFamily = FontFamily.Monospace, color = Mocha.green)
         }
         TextButton(onClick = { Clipboard.copy(c, "TOTP", code) }) { Text("Copy") }
     }

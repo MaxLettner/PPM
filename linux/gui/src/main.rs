@@ -131,6 +131,8 @@ impl App {
 
     /// Reloads status and the data the current page needs.
     fn refresh(&mut self) {
+        // Every path below (including early returns) changes what is shown.
+        self.dirty.set(true);
         match self.call("status", Value::Null) {
             Ok(s) => self.status = s,
             Err(_) => {
@@ -202,6 +204,9 @@ impl Component for App {
     }
 
     fn init(_: (), root: Self::Root, sender: ComponentSender<Self>) -> ComponentParts<Self> {
+        if let Some(st) = gtk::Settings::default() {
+            st.set_gtk_application_prefer_dark_theme(true);
+        }
         let header = gtk::HeaderBar::new();
         let search = gtk::SearchEntry::builder().placeholder_text("Search").width_request(260).build();
         {
@@ -492,5 +497,6 @@ impl Component for App {
 
 fn main() {
     let app = RelmApp::new("dev.peerpass.Peerpass");
+    relm4::set_global_css(include_str!("theme.css"));
     app.run::<App>(());
 }
