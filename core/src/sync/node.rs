@@ -108,11 +108,10 @@ impl Node {
         if let Some(a) = self.discovered.lock().unwrap().get(&peer.device_id) {
             cands.push(*a);
         }
-        if let Some(a) = peer.last_addr.as_deref().and_then(|a| a.parse().ok()) {
-            if !cands.contains(&a) {
+        if let Some(a) = peer.last_addr.as_deref().and_then(|a| a.parse().ok())
+            && !cands.contains(&a) {
                 cands.push(a);
             }
-        }
         let (secret, my_id) = {
             let v = self.vault.lock().unwrap();
             (Zeroizing::new(*v.identity().secret()), v.device_id())

@@ -51,11 +51,10 @@ impl Discovery {
                 let Some(ip) = info.get_addresses_v4().into_iter().next() else { continue };
                 let addr = SocketAddr::new(IpAddr::V4(ip), info.get_port());
                 // Only paired device ids are ever contacted.
-                if let Some(peer) = node.note_discovered(d, addr) {
-                    if let Err(e) = node.sync_peer(&peer) {
+                if let Some(peer) = node.note_discovered(d, addr)
+                    && let Err(e) = node.sync_peer(&peer) {
                         log(&format!("sync with {} failed: {e}", peer.name));
                     }
-                }
             }
         });
         Ok(Self { daemon })

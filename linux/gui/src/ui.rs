@@ -378,7 +378,7 @@ impl Form {
 fn edit(app: &App, id: Option<String>, c: &gtk::Box, s: &S) {
     let e = id
         .as_ref()
-        .and_then(|_| app.current.as_ref())
+        .and(app.current.as_ref())
         .and_then(|cur| cur["siblings"].as_array()?.iter().find(|x| !x["entry"].is_null()).map(|x| x["entry"].clone()))
         .unwrap_or(Value::Null);
     let g = |k: &str| e[k].as_str().unwrap_or("").to_string();

@@ -32,11 +32,14 @@ fn enc_vv(vv: &VersionVector) -> Vec<u8> {
     postcard::to_allocvec(vv).expect("vv encodes")
 }
 
-fn row_to_record(r: &rusqlite::Row) -> rusqlite::Result<(Vec<u8>, u8, Vec<u8>, bool, Vec<u8>)> {
+/// (id, kind, vv, deleted, blob) as stored.
+type RawRecord = (Vec<u8>, u8, Vec<u8>, bool, Vec<u8>);
+
+fn row_to_record(r: &rusqlite::Row) -> rusqlite::Result<RawRecord> {
     Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?))
 }
 
-fn decode_record(t: (Vec<u8>, u8, Vec<u8>, bool, Vec<u8>)) -> Result<Record> {
+fn decode_record(t: RawRecord) -> Result<Record> {
     let (id, kind, vv, deleted, blob) = t;
     Ok(Record {
         id: Uuid::from_slice(&id).map_err(|e| Error::Invalid(e.to_string()))?,
@@ -101,11 +104,10 @@ impl Storage {
     pub fn apply_incoming(&mut self, r: Record) -> Result<bool> {
         let id = r.id;
         let mut local = self.siblings(&id)?;
-        if let Some(l) = local.first() {
-            if l.kind != r.kind {
+        if let Some(l) = local.first()
+            && l.kind != r.kind {
                 return Err(Error::Protocol("record kind mismatch".into()));
             }
-        }
         if !merge_sibling(&mut local, r) {
             return Ok(false);
         }

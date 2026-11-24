@@ -20,6 +20,7 @@ impl Drop for D {
     }
 }
 
+#[allow(clippy::zombie_processes)] // killed and waited in Drop
 fn spawn(dir: &Path, name: &str) -> D {
     let port = TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
     let sock = dir.join(format!("{name}.sock"));

@@ -86,11 +86,10 @@ fn check_hello(v: &Vault, m: Msg) -> Result<u16> {
                 return Err(Error::Protocol(format!("unsupported protocol version {version}")));
             }
             let mine = v.db.header()?.map(|h| h.vault_id);
-            if let (Some(a), Some(b)) = (mine, vault_id) {
-                if a != b {
+            if let (Some(a), Some(b)) = (mine, vault_id)
+                && a != b {
                     return Err(Error::Protocol("peer belongs to another vault".into()));
                 }
-            }
             Ok(port)
         }
         _ => Err(Error::Protocol("expected Hello".into())),

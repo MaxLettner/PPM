@@ -243,11 +243,10 @@ impl Vault {
     /// Creates (id = None) or edits an entry. Editing also resolves any conflict.
     pub fn put(&mut self, id: Option<Uuid>, mut entry: Entry) -> Result<Uuid> {
         let id = id.unwrap_or_else(Uuid::now_v7);
-        if let Some(r) = self.db.siblings(&id)?.first() {
-            if r.kind != RecordKind::Entry {
+        if let Some(r) = self.db.siblings(&id)?.first()
+            && r.kind != RecordKind::Entry {
                 return Err(Error::Invalid("not an entry".into()));
             }
-        }
         entry.updated_at = now();
         let pt = Zeroizing::new(postcard::to_allocvec(&entry)?);
         self.write_record(id, RecordKind::Entry, Some(&pt))?;
