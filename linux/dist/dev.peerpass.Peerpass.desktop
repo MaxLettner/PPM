@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=peerpass
+Comment=Local-first password manager that syncs over your LAN
+Exec=peerpass
+Icon=dialog-password
+Terminal=false
+Categories=Utility;Security;
+StartupNotify=true

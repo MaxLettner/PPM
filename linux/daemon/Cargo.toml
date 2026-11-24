@@ -1,0 +1,26 @@
+[package]
+name = "peerpassd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "peerpass daemon: owns the vault DB and keys, runs LAN sync, serves a Unix-socket JSON-RPC API"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "peerpassd"
+path = "src/main.rs"
+
+[dependencies]
+peerpass-core = { path = "../../core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = "1"
+hex = "0.4"
+zeroize = "1"
+libc = "0.2"
+
+[dev-dependencies]
+peerpass-core = { path = "../../core" }
+tempfile = "3"
