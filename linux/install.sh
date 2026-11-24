@@ -7,7 +7,7 @@ install -Dm755 target/release/peerpassd ~/.local/bin/peerpassd
 install -Dm755 target/release/peerpass ~/.local/bin/peerpass
 install -Dm755 target/release/peerpass-nmhost ~/.local/bin/peerpass-nmhost
 install -Dm644 linux/dist/peerpassd.service ~/.config/systemd/user/peerpassd.service
-install -Dm644 linux/dist/dev.peerpass.Peerpass.desktop ~/.local/share/applications/dev.peerpass.Peerpass.desktop
+sed "s|^Exec=peerpass$|Exec=$HOME/.local/bin/peerpass|" linux/dist/dev.peerpass.Peerpass.desktop | install -Dm644 /dev/stdin ~/.local/share/applications/dev.peerpass.Peerpass.desktop
 mkdir -p ~/.local/share/peerpass
 # Native messaging manifests (Firefox, Waterfox).
 host="$HOME/.local/bin/peerpass-nmhost"
