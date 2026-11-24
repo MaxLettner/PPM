@@ -1,0 +1,31 @@
+[package]
+name = "peerpass-core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+argon2 = "0.6.0"
+blake2 = "0.11.0"
+chacha20poly1305 = "0.11.0"
+data-encoding = "2.11.1"
+getrandom = "0.4.3"
+hex = "0.4.3"
+hmac = "0.13.0"
+keepass = "0.17.0"
+mdns-sd = "0.22.0"
+postcard = { version = "1.2.0", default-features = false, features = ["alloc"] }
+psl = "2.1.262"
+rusqlite = { version = "0.43.0", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha1 = "0.11.0"
+sha2 = "0.11.1"
+snow = "0.10.0"
+thiserror = "2.0.21"
+url = "2.5.9"
+uuid = { version = "1.29.3", features = ["v7", "v8", "serde"] }
+zeroize = { version = "1.9.2", features = ["derive"] }
+
+[dev-dependencies]
+proptest = "1.12.0"
+tempfile = "3.27.0"

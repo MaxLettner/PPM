@@ -1,0 +1,11 @@
+target/
+*.db
+.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/jniLibs/
+android/app/src/main/java/uniffi/
+.idea/
+*.iml
+browser-ext/web-ext-artifacts/
