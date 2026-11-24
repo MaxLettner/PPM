@@ -410,6 +410,18 @@ impl Daemon {
                 }
                 Ok(Value::Array(out))
             }
+            "fill" => {
+                // Credentials for one sibling, only if the page is on the entry's site.
+                let site = domain::etld1(s(p, "url")?).ok_or("not a web page")?;
+                let v = vault.lock().unwrap();
+                let it = v.get(&uuid(p, "id")?).map_err(err)?;
+                let i = p.get("index").and_then(Value::as_u64).unwrap_or(0) as usize;
+                let e = it.siblings.get(i).and_then(|s| s.entry.as_ref()).ok_or("no such version")?;
+                if !e.urls.iter().any(|u| domain::etld1(u).as_deref() == Some(&site)) {
+                    return Err("entry does not belong to this site".into());
+                }
+                Ok(json!({ "username": e.username, "password": e.password }))
+            }
             "peers" => {
                 let v = vault.lock().unwrap();
                 Ok(Value::Array(

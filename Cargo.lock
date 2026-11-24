@@ -1550,6 +1550,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "peerpass-nmhost"
+version = "0.1.0"
+dependencies = [
+ "peerpassd",
+ "serde_json",
+ "zeroize",
+]
+
+[[package]]
 name = "peerpassd"
 version = "0.1.0"
 dependencies = [

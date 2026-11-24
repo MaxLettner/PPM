@@ -1,0 +1,7 @@
+{
+  "name": "dev.peerpass.nmhost",
+  "description": "peerpass native messaging host",
+  "path": "@HOST_PATH@",
+  "type": "stdio",
+  "allowed_extensions": ["peerpass@peerpass.dev"]
+}

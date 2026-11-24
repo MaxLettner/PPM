@@ -1,0 +1,11 @@
+[package]
+name = "peerpass-nmhost"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Native-messaging host: relays a few calls between the browser extension and peerpassd"
+
+[dependencies]
+peerpassd = { path = "../daemon" }
+serde_json = "1"
+zeroize = "1"

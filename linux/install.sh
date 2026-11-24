@@ -13,7 +13,7 @@ mkdir -p ~/.local/share/peerpass
 host="$HOME/.local/bin/peerpass-nmhost"
 for d in ~/.mozilla/native-messaging-hosts ~/.waterfox/native-messaging-hosts; do
   mkdir -p "$d"
-  sed "s|@HOST_PATH@|$host|" browser-ext/peerpass.json.in > "$d/peerpass.json"
+  sed "s|@HOST_PATH@|$host|" browser-ext/peerpass.json.in > "$d/dev.peerpass.nmhost.json"
 done
 systemctl --user daemon-reload
 systemctl --user enable --now peerpassd

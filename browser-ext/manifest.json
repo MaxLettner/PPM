@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "peerpass",
+  "version": "0.1.0",
+  "description": "Fill logins from your local peerpass vault. Fills only when you click.",
+  "permissions": [
+    "nativeMessaging",
+    "activeTab",
+    "scripting",
+    "clipboardWrite"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "peerpass"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "peerpass@peerpass.dev",
+      "strict_min_version": "115.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    }
+  }
+}
