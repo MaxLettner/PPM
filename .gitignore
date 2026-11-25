@@ -9,3 +9,4 @@ android/app/src/main/java/uniffi/
 .idea/
 *.iml
 browser-ext/web-ext-artifacts/
+*.apk
